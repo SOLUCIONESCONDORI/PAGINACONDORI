@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Soluciones Contables CONDORI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 40px;
+      text-align: center;
+    }
+    .encabezado {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .logo {
+      width: 100px;
+      height: 130px;
+      object-fit: contain;
+      margin-right: 20px;
+    }
+    h1 {
+      color: #004080;
+      margin: 0;
+    }
+    input[type="text"] {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    #lista-archivos {
+      width: 320px;
+      max-height: 250px;
+      margin: 0 auto 20px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      text-align: left;
+    }
+    .archivo {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+    .archivo:hover {
+      background-color: #e6f0ff;
+    }
+    #descargarBtn {
+      display: none;
+      padding: 12px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="encabezado">
+    <img src="{{ url_for('static', filename='logo/logo.png') }}" alt="Logo" class="logo">
+    <div>
+      <h1>Soluciones Contables <span style="color:#00b0f0">CONDORI</span></h1>
+      <p style="font-style: italic;">Lleva tu gestión contable al siguiente nivel con nuestras herramientas.</p>
+    </div>
+  </div>
+
+  <input type="text" id="buscador" placeholder="Buscar archivo Excel...">
+
+  <div id="lista-archivos"></div>
+
+  <a id="descargarBtn" href="#" download>Descargar archivo</a>
+
+  <script>
+    const input = document.getElementById('buscador');
+    const lista = document.getElementById('lista-archivos');
+    const descargarBtn = document.getElementById('descargarBtn');
+
+    let todosLosArchivos = [];
+
+    function mostrarArchivos(filtro) {
+      const texto = filtro.toLowerCase();
+      const resultados = todosLosArchivos.filter(nombre =>
+        nombre.toLowerCase().includes(texto)
+      );
+
+      lista.innerHTML = '';
+      descargarBtn.style.display = 'none';
+
+      if (resultados.length === 0) {
+        lista.innerHTML = '<div class="archivo">No se encontraron archivos.</div>';
+        return;
+      }
+
+      resultados.forEach(nombre => {
+        const div = document.createElement('div');
+        div.className = 'archivo';
+
+        const index = nombre.toLowerCase().indexOf(texto);
+        if (index !== -1 && texto !== '') {
+          const antes = nombre.slice(0, index);
+          const coincidencia = nombre.slice(index, index + texto.length);
+          const despues = nombre.slice(index + texto.length);
+          div.innerHTML = `${antes}<span style="background-color: yellow; font-weight: bold;">${coincidencia}</span>${despues}`;
+        } else {
+          div.textContent = nombre;
+        }
+
+        div.addEventListener('click', () => {
+          descargarBtn.href = `/descargar/${encodeURIComponent(nombre)}`;
+          descargarBtn.style.display = 'inline-block';
+        });
+
+        lista.appendChild(div);
+      });
+    }
+
+    window.onload = () => {
+      fetch(`/buscar?q=`)
+        .then(res => res.json())
+        .then(data => {
+          todosLosArchivos = data;
+          mostrarArchivos('');
+        });
+    };
+
+    input.addEventListener('input', () => {
+      mostrarArchivos(input.value.trim());
+    });
+  </script>
+</body>
+</html>
