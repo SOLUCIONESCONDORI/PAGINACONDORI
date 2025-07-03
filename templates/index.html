@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="google-site-verification" content="FNpcMAnYuYTIMX-yvHYjJneB5k5ZyefP70pUuHvQeJE" />
   <title>Soluciones Contables CONDORI</title>
   <style>
     body {
@@ -20,26 +19,21 @@
     .logo {
       width: 100px;
       height: 130px;
-      object-fit: contain;
       margin-right: 20px;
     }
-    h1 {
-      color: #004080;
-      margin: 0;
-    }
-    input[type="text"], input[type="file"] {
+    input[type="text"] {
       padding: 10px;
+      width: 300px;
       font-size: 16px;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
     }
     #lista-archivos {
       width: 320px;
-      max-height: 250px;
       margin: 0 auto 20px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
       background-color: #fff;
-      text-align: left;
+      border: 1px solid #ccc;
+      max-height: 250px;
+      overflow-y: auto;
     }
     .archivo {
       padding: 10px;
@@ -53,19 +47,22 @@
       display: none;
       margin-top: 20px;
     }
-    #ticketMensaje {
-      margin-top: 15px;
-      color: green;
-      font-weight: bold;
+    #formularioPago img {
+      width: 200px;
+      margin-bottom: 10px;
+    }
+    .contacto {
+      margin-top: 40px;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
   <div class="encabezado">
-    <img src="{{ url_for('static', filename='logo/logo.png') }}" alt="Logo" class="logo">
+    <img src="{{ url_for('static', filename='logo/logo.png') }}" class="logo" alt="Logo">
     <div>
       <h1>Soluciones Contables <span style="color:#00b0f0">CONDORI</span></h1>
-      <p style="font-style: italic;">Lleva tu gestión contable al siguiente nivel con nuestras herramientas.</p>
+      <p>Lleva tu gestión contable al siguiente nivel.</p>
     </div>
   </div>
 
@@ -73,86 +70,83 @@
   <div id="lista-archivos"></div>
 
   <div id="formularioPago">
-    <h3>Paso 2: Realiza el pago y sube el comprobante</h3>
-    <img src="{{ url_for('static', filename='logo/qr.png') }}" alt="QR de pago" width="200"><br><br>
-    <form id="formPago">
-      <input type="file" name="comprobante" accept="image/*" required><br><br>
-      <button type="submit">Enviar comprobante</button>
-    </form>
+    <p><strong>Realiza el pago escaneando este código QR:</strong></p>
+    <img src="{{ url_for('static', filename='qr_pago.png') }}" alt="QR de pago">
+    <p>Luego sube una imagen del comprobante de pago:</p>
+    <input type="file" id="comprobante">
+    <br><br>
+    <button onclick="enviarPago()">Enviar comprobante</button>
+    <p id="mensajeTicket" style="margin-top: 10px; color: green;"></p>
   </div>
 
-  <div id="ticketMensaje"></div>
+  <div class="contacto">
+    <p>📞 WhatsApp: <a href="https://wa.me/51987654321" target="_blank">+51 987 654 321</a></p>
+    <p>📧 Email: contacto@solucionescondori.com</p>
+    <p>🌐 Teléfono: (01) 234-5678</p>
+  </div>
 
   <script>
-    const input = document.getElementById('buscador');
-    const lista = document.getElementById('lista-archivos');
-    const formulario = document.getElementById('formularioPago');
-    const formPago = document.getElementById('formPago');
-    const ticketMensaje = document.getElementById('ticketMensaje');
-
-    let archivoSeleccionado = '';
+    const input = document.getElementById("buscador");
+    const lista = document.getElementById("lista-archivos");
+    const formularioPago = document.getElementById("formularioPago");
+    const mensajeTicket = document.getElementById("mensajeTicket");
+    let archivoSeleccionado = "";
 
     function mostrarArchivos(filtro) {
-      const texto = filtro.toLowerCase();
-      fetch(`/buscar?q=${texto}`)
+      fetch(`/buscar?q=${encodeURIComponent(filtro)}`)
         .then(res => res.json())
-        .then(archivos => {
-          lista.innerHTML = '';
-          formulario.style.display = 'none';
-          archivoSeleccionado = '';
-
-          if (archivos.length === 0) {
-            lista.innerHTML = '<div class="archivo">No se encontraron archivos.</div>';
-            return;
-          }
-
-          archivos.forEach(nombre => {
-            const div = document.createElement('div');
-            div.className = 'archivo';
+        .then(data => {
+          lista.innerHTML = "";
+          formularioPago.style.display = "none";
+          mensajeTicket.textContent = "";
+          data.forEach(nombre => {
+            const div = document.createElement("div");
+            div.className = "archivo";
             div.textContent = nombre;
             div.onclick = () => {
               archivoSeleccionado = nombre;
-              formulario.style.display = 'block';
-              ticketMensaje.innerHTML = '';
+              formularioPago.style.display = "block";
+              mensajeTicket.textContent = "";
             };
             lista.appendChild(div);
           });
         });
     }
 
-    input.addEventListener('input', () => {
+    function enviarPago() {
+      const archivo = archivoSeleccionado;
+      const comprobante = document.getElementById("comprobante").files[0];
+
+      if (!comprobante) {
+        alert("Por favor selecciona una imagen del comprobante.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("archivo", archivo);
+      formData.append("comprobante", comprobante);
+
+      fetch("/solicitar-descarga", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        mensajeTicket.innerHTML = `✅ Comprobante recibido. Ticket: <strong>${data.ticket}</strong><br>Tu archivo será autorizado pronto.`;
+        document.getElementById("comprobante").value = "";
+      })
+      .catch(() => {
+        mensajeTicket.textContent = "❌ Ocurrió un error al enviar el comprobante.";
+      });
+    }
+
+    input.addEventListener("input", () => {
       mostrarArchivos(input.value.trim());
     });
 
-    formPago.onsubmit = async (e) => {
-      e.preventDefault();
-      if (!archivoSeleccionado) return;
-
-      const formData = new FormData(formPago);
-      formData.append("archivo", archivoSeleccionado);
-
-      const res = await fetch("/solicitar-descarga", {
-        method: "POST",
-        body: formData
-      });
-
-      const data = await res.json();
-
-      ticketMensaje.innerHTML = `
-        Tu ticket de descarga es: <strong>${data.ticket}</strong><br>
-        Espera aprobación del administrador. Solo podrás descargar el archivo una vez esté autorizado.<br>
-        <br>🔒 <a href="/descargar/${data.ticket}" target="_blank">Enlace de descarga (se activará solo cuando esté aprobado)</a>
-      `;
-      formulario.style.display = 'none';
+    window.onload = () => {
+      mostrarArchivos("");
     };
-
-    window.onload = () => mostrarArchivos('');
   </script>
 </body>
 </html>
-  <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 14px;">
-    <p><strong>Contacto:</strong></p>
-    <p>📞 Teléfono: <a href="tel:+51987654321">+51 987 654 321</a></p>
-    <p>📧 Correo: <a href="mailto:contacto@condori.com">contacto@condori.com</a></p>
-    <p>💬 WhatsApp: <a href="https://wa.me/51987654321" target="_blank">Enviar mensaje</a></p>
-  </footer>
