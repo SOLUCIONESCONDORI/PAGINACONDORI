@@ -15,9 +15,18 @@ CARPETA_COMPROBANTES = os.path.join(app.root_path, 'comprobantes')
 os.makedirs(CARPETA_TICKETS, exist_ok=True)
 os.makedirs(CARPETA_COMPROBANTES, exist_ok=True)
 
+
 @app.route("/")
 def inicio():
-    return render_template("index.html")
+    precios = {}
+    try:
+        with open("precios.json", "r", encoding="utf-8") as f:
+            precios = json.load(f)
+    except Exception as e:
+        print("No se pudo cargar precios:", e)
+
+    return render_template("index.html", precios=precios)
+
 
 @app.route("/buscar")
 def buscar():
@@ -28,6 +37,7 @@ def buscar():
             if q in archivo.lower():
                 archivos.append(archivo)
     return jsonify(archivos)
+
 
 @app.route("/solicitar-descarga", methods=["POST"])
 def solicitar_descarga():
@@ -51,6 +61,7 @@ def solicitar_descarga():
         json.dump(info, f)
 
     return jsonify({"ticket": ticket})
+
 
 @app.route("/autorizaciones", methods=["GET", "POST"])
 def autorizaciones():
@@ -76,6 +87,7 @@ def autorizaciones():
 
     return render_template("autorizaciones.html", tickets=tickets)
 
+
 @app.route("/descargar/<ticket>")
 def descargar_archivo_autorizado(ticket):
     ruta_ticket = os.path.join(CARPETA_TICKETS, f"{ticket}.json")
@@ -98,7 +110,10 @@ def descargar_archivo_autorizado(ticket):
 
     return send_from_directory(CARPETA_ARCHIVOS, info["archivo"], as_attachment=True)
 
+
 if __name__ == "__main__":
     app.run(debug=True)
+
+
 
 
