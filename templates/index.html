@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="google-site-verification" content="FNpcMAnYuYTIMX-yvHYjJneB5k5ZyefP70pUuHvQeJE" />
   <title>Soluciones Contables CONDORI</title>
   <style>
     body {
@@ -50,14 +49,14 @@
     .archivo:hover {
       background-color: #e6f0ff;
     }
-    #descargarBtn {
+    #qr-section, #subir-form, #descargarBtn {
       display: none;
-      padding: 12px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      text-decoration: none;
+      margin-top: 20px;
+    }
+    #qr-section img {
+      width: 200px;
+      height: auto;
+      margin-bottom: 10px;
     }
   </style>
 </head>
@@ -71,17 +70,34 @@
   </div>
 
   <input type="text" id="buscador" placeholder="Buscar archivo Excel...">
-
   <div id="lista-archivos"></div>
 
-  <a id="descargarBtn" href="#" download>Descargar archivo</a>
+  <div id="qr-section">
+    <h3>Realiza el pago escaneando el siguiente código QR</h3>
+    <img src="/static/qr_pago.png" alt="QR de pago">
+    <p id="codigo-ticket"></p>
+  </div>
+
+  <form id="subir-form" method="POST" enctype="multipart/form-data" action="/subir_comprobante">
+    <input type="hidden" name="archivo" id="archivo-nombre">
+    <input type="file" name="comprobante" required>
+    <button type="submit">Subir comprobante</button>
+  </form>
 
   <script>
     const input = document.getElementById('buscador');
     const lista = document.getElementById('lista-archivos');
-    const descargarBtn = document.getElementById('descargarBtn');
+    const qrSection = document.getElementById('qr-section');
+    const subirForm = document.getElementById('subir-form');
+    const archivoInputHidden = document.getElementById('archivo-nombre');
+    const codigoTicket = document.getElementById('codigo-ticket');
 
     let todosLosArchivos = [];
+
+    function generarCodigoTicket(nombreArchivo) {
+      const timestamp = Date.now();
+      return `${nombreArchivo.replace(/\s+/g, '_')}_${timestamp}`;
+    }
 
     function mostrarArchivos(filtro) {
       const texto = filtro.toLowerCase();
@@ -90,7 +106,8 @@
       );
 
       lista.innerHTML = '';
-      descargarBtn.style.display = 'none';
+      qrSection.style.display = 'none';
+      subirForm.style.display = 'none';
 
       if (resultados.length === 0) {
         lista.innerHTML = '<div class="archivo">No se encontraron archivos.</div>';
@@ -100,20 +117,14 @@
       resultados.forEach(nombre => {
         const div = document.createElement('div');
         div.className = 'archivo';
-
-        const index = nombre.toLowerCase().indexOf(texto);
-        if (index !== -1 && texto !== '') {
-          const antes = nombre.slice(0, index);
-          const coincidencia = nombre.slice(index, index + texto.length);
-          const despues = nombre.slice(index + texto.length);
-          div.innerHTML = `${antes}<span style="background-color: yellow; font-weight: bold;">${coincidencia}</span>${despues}`;
-        } else {
-          div.textContent = nombre;
-        }
+        div.textContent = nombre;
 
         div.addEventListener('click', () => {
-          descargarBtn.href = `/descargar/${encodeURIComponent(nombre)}`;
-          descargarBtn.style.display = 'inline-block';
+          const ticket = generarCodigoTicket(nombre);
+          codigoTicket.textContent = `Tu código de pago: ${ticket}`;
+          archivoInputHidden.value = nombre;
+          qrSection.style.display = 'block';
+          subirForm.style.display = 'block';
         });
 
         lista.appendChild(div);
