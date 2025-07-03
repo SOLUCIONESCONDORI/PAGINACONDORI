@@ -112,11 +112,8 @@
         }
 
         div.addEventListener('click', () => {
-          const partes = nombre.split('/');
-          if (partes.length === 2) {
-            descargarBtn.href = `/descargar/${partes[0]}/${encodeURIComponent(partes[1])}`;
-            descargarBtn.style.display = 'inline-block';
-          }
+          descargarBtn.href = `/descargar/${encodeURIComponent(nombre)}`;
+          descargarBtn.style.display = 'inline-block';
         });
 
         lista.appendChild(div);
