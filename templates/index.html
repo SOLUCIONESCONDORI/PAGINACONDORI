@@ -19,7 +19,12 @@
     .logo {
       width: 100px;
       height: 130px;
+      object-fit: contain;
       margin-right: 20px;
+    }
+    h1 {
+      color: #004080;
+      margin: 0;
     }
     input[type="text"] {
       padding: 10px;
@@ -29,11 +34,12 @@
     }
     #lista-archivos {
       width: 320px;
-      margin: 0 auto 20px;
-      background-color: #fff;
-      border: 1px solid #ccc;
       max-height: 250px;
+      margin: 0 auto 20px;
       overflow-y: auto;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      text-align: left;
     }
     .archivo {
       padding: 10px;
@@ -43,110 +49,96 @@
     .archivo:hover {
       background-color: #e6f0ff;
     }
-    #formularioPago {
+    #formulario {
       display: none;
       margin-top: 20px;
     }
-    #formularioPago img {
-      width: 200px;
-      margin-bottom: 10px;
+    #qr-container {
+      margin-top: 20px;
     }
-    .contacto {
-      margin-top: 40px;
-      font-size: 14px;
+    #mensaje-exito {
+      color: green;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <div class="encabezado">
-    <img src="{{ url_for('static', filename='logo/logo.png') }}" class="logo" alt="Logo">
+    <img src="{{ url_for('static', filename='logo/logo.png') }}" alt="Logo" class="logo">
     <div>
       <h1>Soluciones Contables <span style="color:#00b0f0">CONDORI</span></h1>
-      <p>Lleva tu gestión contable al siguiente nivel.</p>
+      <p style="font-style: italic;">Lleva tu gestión contable al siguiente nivel con nuestras herramientas.</p>
     </div>
   </div>
 
   <input type="text" id="buscador" placeholder="Buscar archivo...">
   <div id="lista-archivos"></div>
 
-  <div id="formularioPago">
-    <p><strong>Realiza el pago escaneando este código QR:</strong></p>
-    <img src="{{ url_for('static', filename='qr_pago.png') }}" alt="QR de pago">
-    <p>Luego sube una imagen del comprobante de pago:</p>
-    <input type="file" id="comprobante">
-    <br><br>
-    <button onclick="enviarPago()">Enviar comprobante</button>
-    <p id="mensajeTicket" style="margin-top: 10px; color: green;"></p>
-  </div>
+  <form id="formulario" enctype="multipart/form-data">
+    <p><strong>Realiza el pago escaneando este QR:</strong></p>
+    <div id="qr-container">
+      <img src="{{ url_for('static', filename='qr_pago.png') }}" alt="QR de pago" width="200">
+    </div>
+    <p>Sube el comprobante de pago:</p>
+    <input type="file" name="comprobante" accept="image/*" required><br><br>
+    <input type="submit" value="Enviar para autorización">
+  </form>
 
-  <div class="contacto">
-    <p>📞 WhatsApp: <a href="https://wa.me/51987654321" target="_blank">+51 987 654 321</a></p>
-    <p>📧 Email: contacto@solucionescondori.com</p>
-    <p>🌐 Teléfono: (01) 234-5678</p>
-  </div>
+  <p id="mensaje-exito" style="display: none;">Comprobante enviado correctamente. Ticket: <span id="ticket"></span></p>
 
   <script>
-    const input = document.getElementById("buscador");
-    const lista = document.getElementById("lista-archivos");
-    const formularioPago = document.getElementById("formularioPago");
-    const mensajeTicket = document.getElementById("mensajeTicket");
+    const input = document.getElementById('buscador');
+    const lista = document.getElementById('lista-archivos');
+    const formulario = document.getElementById('formulario');
+    const mensaje = document.getElementById('mensaje-exito');
+    const spanTicket = document.getElementById('ticket');
+
     let archivoSeleccionado = "";
 
     function mostrarArchivos(filtro) {
-      fetch(`/buscar?q=${encodeURIComponent(filtro)}`)
+      const texto = filtro.toLowerCase();
+      fetch(`/buscar?q=${encodeURIComponent(texto)}`)
         .then(res => res.json())
         .then(data => {
-          lista.innerHTML = "";
-          formularioPago.style.display = "none";
-          mensajeTicket.textContent = "";
+          lista.innerHTML = '';
           data.forEach(nombre => {
-            const div = document.createElement("div");
-            div.className = "archivo";
+            const div = document.createElement('div');
+            div.className = 'archivo';
             div.textContent = nombre;
-            div.onclick = () => {
+            div.addEventListener('click', () => {
               archivoSeleccionado = nombre;
-              formularioPago.style.display = "block";
-              mensajeTicket.textContent = "";
-            };
+              formulario.style.display = 'block';
+              mensaje.style.display = 'none';
+            });
             lista.appendChild(div);
           });
         });
     }
 
-    function enviarPago() {
-      const archivo = archivoSeleccionado;
-      const comprobante = document.getElementById("comprobante").files[0];
-
-      if (!comprobante) {
-        alert("Por favor selecciona una imagen del comprobante.");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("archivo", archivo);
-      formData.append("comprobante", comprobante);
-
-      fetch("/solicitar-descarga", {
-        method: "POST",
-        body: formData
-      })
-      .then(res => res.json())
-      .then(data => {
-        mensajeTicket.innerHTML = `✅ Comprobante recibido. Ticket: <strong>${data.ticket}</strong><br>Tu archivo será autorizado pronto.`;
-        document.getElementById("comprobante").value = "";
-      })
-      .catch(() => {
-        mensajeTicket.textContent = "❌ Ocurrió un error al enviar el comprobante.";
-      });
-    }
-
-    input.addEventListener("input", () => {
+    input.addEventListener('input', () => {
       mostrarArchivos(input.value.trim());
     });
 
     window.onload = () => {
-      mostrarArchivos("");
+      mostrarArchivos('');
     };
+
+    formulario.addEventListener('submit', e => {
+      e.preventDefault();
+      const datos = new FormData(formulario);
+      datos.append("archivo", archivoSeleccionado);
+      fetch("/solicitar-descarga", {
+        method: "POST",
+        body: datos
+      })
+      .then(res => res.json())
+      .then(data => {
+        formulario.reset();
+        formulario.style.display = 'none';
+        mensaje.style.display = 'block';
+        spanTicket.textContent = data.ticket;
+      });
+    });
   </script>
 </body>
 </html>
