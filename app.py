@@ -103,13 +103,10 @@ def descargar_archivo_autorizado(ticket):
 
     return send_from_directory(CARPETA_ARCHIVOS, info["archivo"], as_attachment=True)
 
-# ✅ Ruta nueva para mostrar imagen del comprobante
 @app.route("/comprobantes/<nombre>")
 def ver_comprobante(nombre):
     return send_from_directory(CARPETA_COMPROBANTES, nombre)
 
-if __name__ == "__main__":
-    app.run(debug=True)
 @app.route("/consultar", methods=["GET", "POST"])
 def consultar():
     mensaje = ""
@@ -127,5 +124,5 @@ def consultar():
 
     return render_template("consultar.html", info=info, mensaje=mensaje)
 
-
-
+if __name__ == "__main__":
+    app.run(debug=True)
