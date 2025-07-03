@@ -20,7 +20,7 @@
       margin: 0 auto 30px;
       border-collapse: collapse;
       width: 90%;
-      max-width: 900px;
+      max-width: 1000px;
       background-color: #fff;
     }
 
@@ -85,6 +85,11 @@
     .whatsapp:hover {
       background-color: #1ebe57;
     }
+
+    img.comprobante {
+      width: 120px;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -92,29 +97,29 @@
 
   <table>
     <tr>
-      <th>Cliente</th>
-      <th>Archivo</th>
+      <th>Ticket</th>
+      <th>Archivo solicitado</th>
+      <th>Estado</th>
       <th>Comprobante</th>
       <th>Acción</th>
     </tr>
     {% for ticket in tickets %}
     <tr>
-      <td>{{ ticket.cliente }}</td>
+      <td>{{ ticket.ticket }}</td>
       <td>{{ ticket.archivo }}</td>
+      <td>{{ ticket.estado }}</td>
       <td>
-        {% if ticket.comprobante %}
-          <a href="{{ url_for('static', filename='comprobantes/' + ticket.comprobante) }}" target="_blank">Ver</a>
-        {% else %}
-          Sin comprobante
-        {% endif %}
+        <img class="comprobante" src="/comprobantes/{{ ticket.ticket }}.jpg" alt="Comprobante de pago">
       </td>
       <td>
-        {% if not ticket.autorizado %}
-        <form method="POST" action="{{ url_for('autorizar_ticket', ticket_id=ticket.id) }}">
-          <button type="submit">Autorizar</button>
+        {% if ticket.estado == "pendiente" %}
+        <form method="POST">
+          <input type="hidden" name="ticket" value="{{ ticket.ticket }}">
+          <button name="accion" value="autorizar">Autorizar</button>
+          <button name="accion" value="rechazar" style="background-color:#dc3545; margin-left:5px;">Rechazar</button>
         </form>
         {% else %}
-          Autorizado
+          {{ ticket.estado | capitalize }}
         {% endif %}
       </td>
     </tr>
@@ -124,7 +129,7 @@
   <div class="contacto">
     <p>¿Tienes alguna duda o necesitas ayuda?</p>
     <p>📧 Correo: <a href="mailto:solucionescondori@gmail.com">solucionescondori@gmail.com</a></p>
-    <p>📞 Teléfono: <a href="tel:+51987654321">+51 978 543 807</a></p>
+    <p>📞 Teléfono: <a href="tel:+51978543807">+51 978 543 807</a></p>
     <a class="whatsapp" href="https://wa.me/51978543807" target="_blank">Escríbenos por WhatsApp</a>
   </div>
 </body>
