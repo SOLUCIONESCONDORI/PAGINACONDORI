@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="google-site-verification" content="FNpcMAnYuYTIMX-yvHYjJneB5k5ZyefP70pUuHvQeJE" />
   <title>Soluciones Contables CONDORI</title>
   <style>
     body {
@@ -26,11 +27,10 @@
       color: #004080;
       margin: 0;
     }
-    input[type="text"] {
+    input[type="text"], input[type="file"] {
       padding: 10px;
-      width: 300px;
       font-size: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     #lista-archivos {
       width: 320px;
@@ -49,14 +49,14 @@
     .archivo:hover {
       background-color: #e6f0ff;
     }
-    #qr-section, #subir-form, #descargarBtn {
+    #formularioPago {
       display: none;
       margin-top: 20px;
     }
-    #qr-section img {
-      width: 200px;
-      height: auto;
-      margin-bottom: 10px;
+    #ticketMensaje {
+      margin-top: 15px;
+      color: green;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -69,80 +69,90 @@
     </div>
   </div>
 
-  <input type="text" id="buscador" placeholder="Buscar archivo Excel...">
+  <input type="text" id="buscador" placeholder="Buscar archivo...">
   <div id="lista-archivos"></div>
 
-  <div id="qr-section">
-    <h3>Realiza el pago escaneando el siguiente código QR</h3>
-    <img src="/static/qr_pago.png" alt="QR de pago">
-    <p id="codigo-ticket"></p>
+  <div id="formularioPago">
+    <h3>Paso 2: Realiza el pago y sube el comprobante</h3>
+    <img src="{{ url_for('static', filename='logo/qr.png') }}" alt="QR de pago" width="200"><br><br>
+    <form id="formPago">
+      <input type="file" name="comprobante" accept="image/*" required><br><br>
+      <button type="submit">Enviar comprobante</button>
+    </form>
   </div>
 
-  <form id="subir-form" method="POST" enctype="multipart/form-data" action="/subir_comprobante">
-    <input type="hidden" name="archivo" id="archivo-nombre">
-    <input type="file" name="comprobante" required>
-    <button type="submit">Subir comprobante</button>
-  </form>
+  <div id="ticketMensaje"></div>
 
   <script>
     const input = document.getElementById('buscador');
     const lista = document.getElementById('lista-archivos');
-    const qrSection = document.getElementById('qr-section');
-    const subirForm = document.getElementById('subir-form');
-    const archivoInputHidden = document.getElementById('archivo-nombre');
-    const codigoTicket = document.getElementById('codigo-ticket');
+    const formulario = document.getElementById('formularioPago');
+    const formPago = document.getElementById('formPago');
+    const ticketMensaje = document.getElementById('ticketMensaje');
 
-    let todosLosArchivos = [];
-
-    function generarCodigoTicket(nombreArchivo) {
-      const timestamp = Date.now();
-      return `${nombreArchivo.replace(/\s+/g, '_')}_${timestamp}`;
-    }
+    let archivoSeleccionado = '';
 
     function mostrarArchivos(filtro) {
       const texto = filtro.toLowerCase();
-      const resultados = todosLosArchivos.filter(nombre =>
-        nombre.toLowerCase().includes(texto)
-      );
-
-      lista.innerHTML = '';
-      qrSection.style.display = 'none';
-      subirForm.style.display = 'none';
-
-      if (resultados.length === 0) {
-        lista.innerHTML = '<div class="archivo">No se encontraron archivos.</div>';
-        return;
-      }
-
-      resultados.forEach(nombre => {
-        const div = document.createElement('div');
-        div.className = 'archivo';
-        div.textContent = nombre;
-
-        div.addEventListener('click', () => {
-          const ticket = generarCodigoTicket(nombre);
-          codigoTicket.textContent = `Tu código de pago: ${ticket}`;
-          archivoInputHidden.value = nombre;
-          qrSection.style.display = 'block';
-          subirForm.style.display = 'block';
-        });
-
-        lista.appendChild(div);
-      });
-    }
-
-    window.onload = () => {
-      fetch(`/buscar?q=`)
+      fetch(`/buscar?q=${texto}`)
         .then(res => res.json())
-        .then(data => {
-          todosLosArchivos = data;
-          mostrarArchivos('');
+        .then(archivos => {
+          lista.innerHTML = '';
+          formulario.style.display = 'none';
+          archivoSeleccionado = '';
+
+          if (archivos.length === 0) {
+            lista.innerHTML = '<div class="archivo">No se encontraron archivos.</div>';
+            return;
+          }
+
+          archivos.forEach(nombre => {
+            const div = document.createElement('div');
+            div.className = 'archivo';
+            div.textContent = nombre;
+            div.onclick = () => {
+              archivoSeleccionado = nombre;
+              formulario.style.display = 'block';
+              ticketMensaje.innerHTML = '';
+            };
+            lista.appendChild(div);
+          });
         });
-    };
+    }
 
     input.addEventListener('input', () => {
       mostrarArchivos(input.value.trim());
     });
+
+    formPago.onsubmit = async (e) => {
+      e.preventDefault();
+      if (!archivoSeleccionado) return;
+
+      const formData = new FormData(formPago);
+      formData.append("archivo", archivoSeleccionado);
+
+      const res = await fetch("/solicitar-descarga", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+
+      ticketMensaje.innerHTML = `
+        Tu ticket de descarga es: <strong>${data.ticket}</strong><br>
+        Espera aprobación del administrador. Solo podrás descargar el archivo una vez esté autorizado.<br>
+        <br>🔒 <a href="/descargar/${data.ticket}" target="_blank">Enlace de descarga (se activará solo cuando esté aprobado)</a>
+      `;
+      formulario.style.display = 'none';
+    };
+
+    window.onload = () => mostrarArchivos('');
   </script>
 </body>
 </html>
+  <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 14px;">
+    <p><strong>Contacto:</strong></p>
+    <p>📞 Teléfono: <a href="tel:+51987654321">+51 987 654 321</a></p>
+    <p>📧 Correo: <a href="mailto:contacto@condori.com">contacto@condori.com</a></p>
+    <p>💬 WhatsApp: <a href="https://wa.me/51987654321" target="_blank">Enviar mensaje</a></p>
+  </footer>
