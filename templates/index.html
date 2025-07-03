@@ -62,6 +62,20 @@
       border-radius: 5px;
       text-decoration: none;
     }
+    .boton-consulta {
+      margin-top: 30px;
+    }
+    .boton-consulta a {
+      background-color: #17a2b8;
+      color: white;
+      padding: 12px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .boton-consulta a:hover {
+      background-color: #138496;
+    }
   </style>
 </head>
 <body>
@@ -74,7 +88,6 @@
   </div>
 
   <input type="text" id="buscador" placeholder="Buscar archivo...">
-
   <div id="lista-archivos"></div>
 
   <form id="formularioPago" enctype="multipart/form-data">
@@ -86,6 +99,11 @@
   </form>
 
   <a id="descargarBtn" href="#" download>Descargar archivo</a>
+
+  <!-- 🔍 Botón para consultar estado -->
+  <div class="boton-consulta">
+    <a href="/consultar">🔍 Consultar estado de pedido</a>
+  </div>
 
   <footer style="margin-top: 40px;">
     <p>Contacto: <strong>978543807</strong> | <a href="mailto:solucionescontablescondori@gmail.com">solucionescontablescondori@gmail.com</a></p>
