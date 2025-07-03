@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Autorizaciones de Descarga</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+      padding: 40px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #004080;
+      margin-bottom: 30px;
+    }
+
+    table {
+      margin: 0 auto 30px;
+      border-collapse: collapse;
+      width: 90%;
+      max-width: 900px;
+      background-color: #fff;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    form {
+      display: inline;
+    }
+
+    button {
+      padding: 8px 14px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .contacto {
+      margin-top: 40px;
+      font-size: 15px;
+      color: #333;
+    }
+
+    .contacto a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .contacto a:hover {
+      text-decoration: underline;
+    }
+
+    .whatsapp {
+      display: inline-block;
+      margin-top: 10px;
+      background-color: #25D366;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .whatsapp:hover {
+      background-color: #1ebe57;
+    }
+  </style>
+</head>
+<body>
+  <h1>Solicitudes Pendientes de Autorización</h1>
+
+  <table>
+    <tr>
+      <th>Cliente</th>
+      <th>Archivo</th>
+      <th>Comprobante</th>
+      <th>Acción</th>
+    </tr>
+    {% for ticket in tickets %}
+    <tr>
+      <td>{{ ticket.cliente }}</td>
+      <td>{{ ticket.archivo }}</td>
+      <td>
+        {% if ticket.comprobante %}
+          <a href="{{ url_for('static', filename='comprobantes/' + ticket.comprobante) }}" target="_blank">Ver</a>
+        {% else %}
+          Sin comprobante
+        {% endif %}
+      </td>
+      <td>
+        {% if not ticket.autorizado %}
+        <form method="POST" action="{{ url_for('autorizar_ticket', ticket_id=ticket.id) }}">
+          <button type="submit">Autorizar</button>
+        </form>
+        {% else %}
+          Autorizado
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <div class="contacto">
+    <p>¿Tienes alguna duda o necesitas ayuda?</p>
+    <p>📧 Correo: <a href="mailto:solucionescondori@gmail.com">solucionescondori@gmail.com</a></p>
+    <p>📞 Teléfono: <a href="tel:+51987654321">+51 978 543 807</a></p>
+    <a class="whatsapp" href="https://wa.me/51978543807" target="_blank">Escríbenos por WhatsApp</a>
+  </div>
+</body>
+</html>
