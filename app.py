@@ -15,7 +15,6 @@ CARPETA_COMPROBANTES = os.path.join(app.root_path, 'comprobantes')
 os.makedirs(CARPETA_TICKETS, exist_ok=True)
 os.makedirs(CARPETA_COMPROBANTES, exist_ok=True)
 
-
 @app.route("/")
 def inicio():
     precios = {}
@@ -24,9 +23,7 @@ def inicio():
             precios = json.load(f)
     except Exception as e:
         print("No se pudo cargar precios:", e)
-
     return render_template("index.html", precios=precios)
-
 
 @app.route("/buscar")
 def buscar():
@@ -37,7 +34,6 @@ def buscar():
             if q in archivo.lower():
                 archivos.append(archivo)
     return jsonify(archivos)
-
 
 @app.route("/solicitar-descarga", methods=["POST"])
 def solicitar_descarga():
@@ -61,7 +57,6 @@ def solicitar_descarga():
         json.dump(info, f)
 
     return jsonify({"ticket": ticket})
-
 
 @app.route("/autorizaciones", methods=["GET", "POST"])
 def autorizaciones():
@@ -87,7 +82,6 @@ def autorizaciones():
 
     return render_template("autorizaciones.html", tickets=tickets)
 
-
 @app.route("/descargar/<ticket>")
 def descargar_archivo_autorizado(ticket):
     ruta_ticket = os.path.join(CARPETA_TICKETS, f"{ticket}.json")
@@ -103,17 +97,35 @@ def descargar_archivo_autorizado(ticket):
     if info.get("descargado", False):
         return "Este enlace ya ha sido utilizado. Para descargar nuevamente, realiza un nuevo pago.", 403
 
-    # Marcar como descargado
     info["descargado"] = True
     with open(ruta_ticket, 'w') as f:
         json.dump(info, f)
 
     return send_from_directory(CARPETA_ARCHIVOS, info["archivo"], as_attachment=True)
 
+# ✅ Ruta nueva para mostrar imagen del comprobante
+@app.route("/comprobantes/<nombre>")
+def ver_comprobante(nombre):
+    return send_from_directory(CARPETA_COMPROBANTES, nombre)
 
 if __name__ == "__main__":
     app.run(debug=True)
+@app.route("/consultar", methods=["GET", "POST"])
+def consultar():
+    mensaje = ""
+    info = None
 
+    if request.method == "POST":
+        ticket = request.form.get("ticket")
+        ruta_ticket = os.path.join(CARPETA_TICKETS, f"{ticket}.json")
+        if os.path.exists(ruta_ticket):
+            with open(ruta_ticket, "r") as f:
+                info = json.load(f)
+            info["ticket"] = ticket
+        else:
+            mensaje = "Ticket no encontrado."
+
+    return render_template("consultar.html", info=info, mensaje=mensaje)
 
 
 
