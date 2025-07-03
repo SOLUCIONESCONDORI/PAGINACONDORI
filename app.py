@@ -3,7 +3,7 @@ import os
 
 app = Flask(__name__)
 
-# Ruta a la carpeta donde están los archivos Excel
+# Ruta a la carpeta donde están los archivos
 CARPETA_ARCHIVOS = os.path.join(app.root_path, 'macros')
 
 @app.route("/")
@@ -16,7 +16,7 @@ def buscar():
     archivos = []
     if os.path.exists(CARPETA_ARCHIVOS):
         for archivo in os.listdir(CARPETA_ARCHIVOS):
-            if archivo.lower().endswith(".xlsx") and q in archivo.lower():
+            if q in archivo.lower():
                 archivos.append(archivo)
     return jsonify(archivos)
 
@@ -26,5 +26,6 @@ def descargar(nombre):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
