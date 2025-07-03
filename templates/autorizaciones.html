@@ -19,8 +19,8 @@
     table {
       margin: 0 auto 30px;
       border-collapse: collapse;
-      width: 90%;
-      max-width: 1000px;
+      width: 95%;
+      max-width: 1100px;
       background-color: #fff;
     }
 
@@ -28,6 +28,7 @@
       padding: 12px 15px;
       border: 1px solid #ccc;
       text-align: center;
+      vertical-align: middle;
     }
 
     th {
@@ -54,6 +55,11 @@
 
     button:hover {
       background-color: #218838;
+    }
+
+    button.rechazar {
+      background-color: #dc3545;
+      margin-left: 5px;
     }
 
     .contacto {
@@ -87,8 +93,10 @@
     }
 
     img.comprobante {
-      width: 120px;
+      width: 140px;
+      height: auto;
       border-radius: 4px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.2);
     }
   </style>
 </head>
@@ -98,7 +106,7 @@
   <table>
     <tr>
       <th>Ticket</th>
-      <th>Archivo solicitado</th>
+      <th>Archivo Solicitado</th>
       <th>Estado</th>
       <th>Comprobante</th>
       <th>Acción</th>
@@ -107,17 +115,23 @@
     <tr>
       <td>{{ ticket.ticket }}</td>
       <td>{{ ticket.archivo }}</td>
-      <td>{{ ticket.estado }}</td>
+      <td>{{ ticket.estado | capitalize }}</td>
       <td>
-        <img class="comprobante" src="/comprobantes/{{ ticket.ticket }}.jpg" alt="Comprobante de pago">
+        {% if ticket.comprobante %}
+          <a href="{{ url_for('ver_comprobante', nombre=ticket.comprobante) }}" target="_blank">
+            <img class="comprobante" src="{{ url_for('ver_comprobante', nombre=ticket.comprobante) }}" alt="Comprobante">
+          </a>
+        {% else %}
+          No disponible
+        {% endif %}
       </td>
       <td>
         {% if ticket.estado == "pendiente" %}
-        <form method="POST">
-          <input type="hidden" name="ticket" value="{{ ticket.ticket }}">
-          <button name="accion" value="autorizar">Autorizar</button>
-          <button name="accion" value="rechazar" style="background-color:#dc3545; margin-left:5px;">Rechazar</button>
-        </form>
+          <form method="POST">
+            <input type="hidden" name="ticket" value="{{ ticket.ticket }}">
+            <button name="accion" value="autorizar">Autorizar</button>
+            <button name="accion" value="rechazar" class="rechazar">Rechazar</button>
+          </form>
         {% else %}
           {{ ticket.estado | capitalize }}
         {% endif %}
