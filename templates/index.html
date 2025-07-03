@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="google-site-verification" content="FNpcMAnYuYTIMX-yvHYjJneB5k5ZyefP70pUuHvQeJE" />
   <title>Soluciones Contables CONDORI</title>
   <style>
     body {
@@ -50,36 +49,18 @@
     .archivo:hover {
       background-color: #e6f0ff;
     }
-    #pago-formulario {
+    #formularioPago {
       display: none;
       margin-top: 20px;
-      background-color: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      width: 320px;
-      margin-left: auto;
-      margin-right: auto;
     }
-    #pago-formulario img {
-      width: 200px;
-      margin-bottom: 10px;
-    }
-    #pago-formulario input[type="file"] {
-      margin-bottom: 10px;
-    }
-    #pago-formulario button {
-      padding: 10px 20px;
+    #descargarBtn {
+      display: none;
+      padding: 12px 20px;
       background-color: #007bff;
       color: white;
       border: none;
       border-radius: 5px;
-      cursor: pointer;
-    }
-    .precio {
-      float: right;
-      color: green;
-      font-weight: bold;
+      text-decoration: none;
     }
   </style>
 </head>
@@ -96,32 +77,27 @@
 
   <div id="lista-archivos"></div>
 
-  <div id="pago-formulario">
-    <h3>Realiza el pago</h3>
-    <img src="{{ url_for('static', filename='qr_pago.png') }}" alt="QR de pago">
-    <form id="formularioPago">
-      <input type="file" name="comprobante" accept="image/*" required><br>
-      <input type="hidden" name="archivo" id="archivoSeleccionado">
-      <button type="submit">Enviar comprobante</button>
-    </form>
-    <p id="ticketInfo" style="color:green; font-weight:bold;"></p>
-  </div>
+  <form id="formularioPago" enctype="multipart/form-data">
+    <p><strong>Paga escaneando este código QR:</strong></p>
+    <img src="{{ url_for('static', filename='qr_pago.png') }}" alt="QR para pago" style="width:200px;"><br><br>
+    <input type="file" name="comprobante" required><br><br>
+    <input type="hidden" name="archivo" id="archivoSeleccionado">
+    <button type="submit">Enviar comprobante</button>
+  </form>
 
-  <hr style="margin-top: 40px;">
-  <div>
-    <p><strong>Contacto:</strong></p>
-    <p>Teléfono: <a href="tel:+51987654321">+51 987 654 321</a></p>
-    <p>Correo: <a href="mailto:consultas@condori.pe">consultas@condori.pe</a></p>
-    <p><a href="https://wa.me/51987654321" target="_blank" style="color: green; font-weight: bold;">💬 Escríbenos por WhatsApp</a></p>
-  </div>
+  <a id="descargarBtn" href="#" download>Descargar archivo</a>
+
+  <footer style="margin-top: 40px;">
+    <p>Contacto: <strong>987654321</strong> | <a href="mailto:contabilidad@condori.com">contabilidad@condori.com</a></p>
+    <p><a href="https://wa.me/51987654321" target="_blank">Escríbenos por WhatsApp</a></p>
+  </footer>
 
   <script>
     const input = document.getElementById('buscador');
     const lista = document.getElementById('lista-archivos');
-    const pagoFormulario = document.getElementById('pago-formulario');
-    const archivoSeleccionadoInput = document.getElementById('archivoSeleccionado');
-    const formularioPago = document.getElementById('formularioPago');
-    const ticketInfo = document.getElementById('ticketInfo');
+    const form = document.getElementById('formularioPago');
+    const descargarBtn = document.getElementById('descargarBtn');
+    const archivoInput = document.getElementById('archivoSeleccionado');
 
     let todosLosArchivos = [];
     let precios = {};
@@ -133,7 +109,8 @@
       );
 
       lista.innerHTML = '';
-      pagoFormulario.style.display = 'none';
+      form.style.display = 'none';
+      descargarBtn.style.display = 'none';
 
       if (resultados.length === 0) {
         lista.innerHTML = '<div class="archivo">No se encontraron archivos.</div>';
@@ -143,20 +120,18 @@
       resultados.forEach(nombre => {
         const div = document.createElement('div');
         div.className = 'archivo';
-        div.textContent = nombre;
 
-        const precio = precios[nombre];
-        if (precio) {
-          const span = document.createElement('span');
-          span.className = 'precio';
-          span.textContent = precio;
-          div.appendChild(span);
+        let contenido = nombre;
+        if (precios[nombre]) {
+          contenido += ` - <strong>S/. ${precios[nombre]}</strong>`;
         }
 
+        div.innerHTML = contenido;
+
         div.addEventListener('click', () => {
-          archivoSeleccionadoInput.value = nombre;
-          pagoFormulario.style.display = 'block';
-          ticketInfo.textContent = '';
+          archivoInput.value = nombre;
+          form.style.display = 'block';
+          descargarBtn.style.display = 'none';
         });
 
         lista.appendChild(div);
@@ -171,11 +146,10 @@
           mostrarArchivos('');
         });
 
-      fetch(`/static/precios.json`)
+      fetch(`/precios.json`)
         .then(res => res.json())
         .then(data => {
           precios = data;
-          mostrarArchivos('');
         });
     };
 
@@ -183,22 +157,15 @@
       mostrarArchivos(input.value.trim());
     });
 
-    formularioPago.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const formData = new FormData(formularioPago);
-
-      const res = await fetch("/solicitar-descarga", {
-        method: "POST",
+      const formData = new FormData(form);
+      const res = await fetch('/solicitar-descarga', {
+        method: 'POST',
         body: formData
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        ticketInfo.textContent = "Comprobante enviado correctamente. Tu ticket es: " + data.ticket;
-        formularioPago.reset();
-      } else {
-        ticketInfo.textContent = "Error al enviar el comprobante.";
-      }
+      const data = await res.json();
+      alert("Tu solicitud ha sido enviada. Ticket: " + data.ticket + ". Espera la autorización.");
     });
   </script>
 </body>
