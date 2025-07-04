@@ -3,8 +3,19 @@ import os
 import uuid
 import json
 from werkzeug.utils import secure_filename
+from PIL import Image
+import io
 
 app = Flask(__name__)
+
+# Seguridad: límite de tamaño de subida a 5 MB
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
+
+# Extensiones permitidas
+EXTENSIONES_PERMITIDAS = {'jpg', 'jpeg', 'png'}
+
+def extension_valida(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in EXTENSIONES_PERMITIDAS
 
 # Rutas
 CARPETA_ARCHIVOS = os.path.join(app.root_path, 'macros')
@@ -43,17 +54,35 @@ def solicitar_descarga():
     if not archivo or not imagen:
         return "Faltan datos", 400
 
+    # Validar extensión
+    if not extension_valida(imagen.filename):
+        return "Extensión de archivo no permitida", 400
+
+    # Validar que realmente sea imagen
+    try:
+        imagen_bytes = imagen.read()
+        Image.open(io.BytesIO(imagen_bytes)).verify()
+        imagen.stream.seek(0)
+    except Exception:
+        return "El archivo no es una imagen válida", 400
+
+    # Guardar comprobante con nombre seguro
     ticket = str(uuid.uuid4())
-    ruta_comprobante = os.path.join(CARPETA_COMPROBANTES, f"{ticket}.jpg")
+    nombre_archivo = secure_filename(imagen.filename)
+    extension = os.path.splitext(nombre_archivo)[1].lower()
+    nombre_comprobante = f"{ticket}{extension}"
+    ruta_comprobante = os.path.join(CARPETA_COMPROBANTES, nombre_comprobante)
     imagen.save(ruta_comprobante)
 
     info = {
+        "ticket": ticket,
         "archivo": archivo,
         "estado": "pendiente",
-        "descargado": False
+        "descargado": False,
+        "comprobante": nombre_comprobante
     }
 
-    with open(os.path.join(CARPETA_TICKETS, f"{ticket}.json"), "w") as f:
+    with open(os.path.join(CARPETA_TICKETS, f"{ticket}.json"), "w", encoding="utf-8") as f:
         json.dump(info, f)
 
     return jsonify({"ticket": ticket})
@@ -64,7 +93,7 @@ def autorizaciones():
     for nombre_archivo in os.listdir(CARPETA_TICKETS):
         if nombre_archivo.endswith(".json"):
             ruta = os.path.join(CARPETA_TICKETS, nombre_archivo)
-            with open(ruta, "r") as f:
+            with open(ruta, "r", encoding="utf-8") as f:
                 data = json.load(f)
             ticket_id = nombre_archivo.replace(".json", "")
             tickets.append({"ticket": ticket_id, **data})
@@ -74,10 +103,10 @@ def autorizaciones():
         accion = request.form.get("accion")
         ruta_ticket = os.path.join(CARPETA_TICKETS, f"{ticket}.json")
         if os.path.exists(ruta_ticket):
-            with open(ruta_ticket, "r") as f:
+            with open(ruta_ticket, "r", encoding="utf-8") as f:
                 info = json.load(f)
             info["estado"] = "autorizado" if accion == "autorizar" else "rechazado"
-            with open(ruta_ticket, "w") as f:
+            with open(ruta_ticket, "w", encoding="utf-8") as f:
                 json.dump(info, f)
 
     return render_template("autorizaciones.html", tickets=tickets)
@@ -88,7 +117,7 @@ def descargar_archivo_autorizado(ticket):
     if not os.path.exists(ruta_ticket):
         return "Ticket no válido.", 404
 
-    with open(ruta_ticket, 'r') as f:
+    with open(ruta_ticket, 'r', encoding='utf-8') as f:
         info = json.load(f)
 
     if info["estado"] != "autorizado":
@@ -98,7 +127,7 @@ def descargar_archivo_autorizado(ticket):
         return "Este enlace ya ha sido utilizado. Para descargar nuevamente, realiza un nuevo pago.", 403
 
     info["descargado"] = True
-    with open(ruta_ticket, 'w') as f:
+    with open(ruta_ticket, 'w', encoding='utf-8') as f:
         json.dump(info, f)
 
     return send_from_directory(CARPETA_ARCHIVOS, info["archivo"], as_attachment=True)
@@ -116,13 +145,18 @@ def consultar():
         ticket = request.form.get("ticket")
         ruta_ticket = os.path.join(CARPETA_TICKETS, f"{ticket}.json")
         if os.path.exists(ruta_ticket):
-            with open(ruta_ticket, "r") as f:
+            with open(ruta_ticket, "r", encoding="utf-8") as f:
                 info = json.load(f)
             info["ticket"] = ticket
         else:
             mensaje = "Ticket no encontrado."
 
     return render_template("consultar.html", info=info, mensaje=mensaje)
+@app.route("/precios.json")
+def obtener_precios():
+    return send_from_directory(".", "precios.json")
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+

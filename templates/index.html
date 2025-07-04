@@ -93,14 +93,13 @@
   <form id="formularioPago" enctype="multipart/form-data">
     <p><strong>Paga escaneando este código QR:</strong></p>
     <img src="{{ url_for('static', filename='qr_pago.png') }}" alt="QR para pago" style="width:200px;"><br><br>
-    <input type="file" name="comprobante" required><br><br>
+    <input type="file" name="comprobante" id="comprobante" accept=".jpg,.jpeg,.png" required><br><br>
     <input type="hidden" name="archivo" id="archivoSeleccionado">
-    <button type="submit">Enviar comprobante</button>
+    <button type="submit" id="botonEnviar">Enviar comprobante</button>
   </form>
 
   <a id="descargarBtn" href="#" download>Descargar archivo</a>
 
-  <!-- 🔍 Botón para consultar estado -->
   <div class="boton-consulta">
     <a href="/consultar">🔍 Consultar estado de pedido</a>
   </div>
@@ -116,6 +115,8 @@
     const form = document.getElementById('formularioPago');
     const descargarBtn = document.getElementById('descargarBtn');
     const archivoInput = document.getElementById('archivoSeleccionado');
+    const botonEnviar = document.getElementById('botonEnviar');
+    const comprobanteInput = document.getElementById('comprobante');
 
     let todosLosArchivos = [];
     let precios = {};
@@ -171,19 +172,46 @@
         });
     };
 
-    input.addEventListener('input', () => {
-      mostrarArchivos(input.value.trim());
-    });
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const formData = new FormData(form);
-      const res = await fetch('/solicitar-descarga', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      alert("Tu solicitud ha sido enviada. Ticket: " + data.ticket + ". Espera la autorización.");
+
+      const archivo = comprobanteInput.files[0];
+      if (!archivo) {
+        alert("Por favor, selecciona un comprobante.");
+        return;
+      }
+
+      const ext = archivo.name.split('.').pop().toLowerCase();
+      if (!["jpg", "jpeg", "png"].includes(ext)) {
+        alert("Solo se permiten imágenes JPG o PNG.");
+        return;
+      }
+
+      botonEnviar.disabled = true;
+      botonEnviar.textContent = "Enviando...";
+
+      try {
+        const formData = new FormData(form);
+        const res = await fetch('/solicitar-descarga', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || "Error al enviar comprobante");
+        }
+
+        const data = await res.json();
+        alert("✅ Tu solicitud ha sido enviada. Ticket: " + data.ticket + ". Espera la autorización.");
+        form.reset();
+        form.style.display = 'none';
+      } catch (err) {
+        alert("❌ Error: " + err.message);
+      } finally {
+        botonEnviar.disabled = false;
+        botonEnviar.textContent = "Enviar comprobante";
+      }
     });
   </script>
 </body>
