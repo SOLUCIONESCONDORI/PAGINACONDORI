@@ -11,6 +11,25 @@
       text-align: center;
     }
 
+    .top-bar {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+    }
+
+    .top-bar a {
+      background-color: #dc3545;
+      color: white;
+      padding: 8px 14px;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+
+    .top-bar a:hover {
+      background-color: #c82333;
+    }
+
     h1 {
       color: #004080;
       margin-bottom: 30px;
@@ -101,6 +120,11 @@
   </style>
 </head>
 <body>
+
+  <div class="top-bar">
+    <a href="/logout">Cerrar sesión</a>
+  </div>
+
   <h1>Solicitudes Pendientes de Autorización</h1>
 
   <table>

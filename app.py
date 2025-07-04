@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_from_directory, jsonify
+from flask import Flask, render_template, request, send_from_directory, jsonify, session, redirect, url_for
 import os
 import uuid
 import json
@@ -7,6 +7,10 @@ from PIL import Image
 import io
 
 app = Flask(__name__)
+app.secret_key = 'clave-secreta-muy-segura'  # Cambiar por una clave segura
+
+USUARIO_ADMIN = "admin"
+CLAVE_ADMIN = "1234"
 
 # Seguridad: límite de tamaño de subida a 5 MB
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
@@ -54,11 +58,9 @@ def solicitar_descarga():
     if not archivo or not imagen:
         return "Faltan datos", 400
 
-    # Validar extensión
     if not extension_valida(imagen.filename):
         return "Extensión de archivo no permitida", 400
 
-    # Validar que realmente sea imagen
     try:
         imagen_bytes = imagen.read()
         Image.open(io.BytesIO(imagen_bytes)).verify()
@@ -66,7 +68,6 @@ def solicitar_descarga():
     except Exception:
         return "El archivo no es una imagen válida", 400
 
-    # Guardar comprobante con nombre seguro
     ticket = str(uuid.uuid4())
     nombre_archivo = secure_filename(imagen.filename)
     extension = os.path.splitext(nombre_archivo)[1].lower()
@@ -89,6 +90,9 @@ def solicitar_descarga():
 
 @app.route("/autorizaciones", methods=["GET", "POST"])
 def autorizaciones():
+    if not session.get("autenticado"):
+        return redirect(url_for("login"))
+
     tickets = []
     for nombre_archivo in os.listdir(CARPETA_TICKETS):
         if nombre_archivo.endswith(".json"):
@@ -152,11 +156,31 @@ def consultar():
             mensaje = "Ticket no encontrado."
 
     return render_template("consultar.html", info=info, mensaje=mensaje)
+
 @app.route("/precios.json")
 def obtener_precios():
     return send_from_directory(".", "precios.json")
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = ""
+    if request.method == "POST":
+        usuario = request.form.get("usuario")
+        clave = request.form.get("clave")
+        if usuario == USUARIO_ADMIN and clave == CLAVE_ADMIN:
+            session["autenticado"] = True
+            return redirect(url_for("autorizaciones"))
+        else:
+            error = "Credenciales inválidas"
+    return render_template("login.html", error=error)
+
+@app.route("/logout")
+def logout():
+    session.pop("autenticado", None)
+    return redirect(url_for("login"))
+
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 

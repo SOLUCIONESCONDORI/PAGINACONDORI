@@ -165,7 +165,7 @@
           mostrarArchivos('');
         });
 
-      fetch(`/precios.json`)
+      fetch(`/static/precios.json`)
         .then(res => res.json())
         .then(data => {
           precios = data;
