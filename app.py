@@ -9,9 +9,6 @@ import io
 app = Flask(__name__)
 app.secret_key = 'clave-secreta-muy-segura'  # Cambiar por una clave segura
 
-USUARIO_ADMIN = "admin"
-CLAVE_ADMIN = "1234"
-
 # Seguridad: límite de tamaño de subida a 5 MB
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 
@@ -165,13 +162,18 @@ def obtener_precios():
 def login():
     error = ""
     if request.method == "POST":
-        usuario = request.form.get("usuario")
-        clave = request.form.get("clave")
-        if usuario == USUARIO_ADMIN and clave == CLAVE_ADMIN:
-            session["autenticado"] = True
-            return redirect(url_for("autorizaciones"))
-        else:
-            error = "Credenciales inválidas"
+        usuario = request.form.get("usuario", "").lower()
+        clave = request.form.get("clave", "")
+        try:
+            with open("usuarios.json", "r", encoding="utf-8") as f:
+                usuarios = json.load(f)
+            if usuario in usuarios and usuarios[usuario] == clave:
+                session["autenticado"] = True
+                return redirect(url_for("autorizaciones"))
+            else:
+                error = "Credenciales inválidas"
+        except Exception as e:
+            error = f"Error al leer usuarios: {e}"
     return render_template("login.html", error=error)
 
 @app.route("/logout")
@@ -181,6 +183,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
 
